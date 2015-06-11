@@ -115,12 +115,6 @@ public class MainActivity extends ActionBarActivity implements ForecastFragment.
     protected void onResume() {
         super.onResume();
 
-        // If Google Play Services is not available, some features, such as GCM-powered weather
-        // alerts, will not be available.
-        if (!checkPlayServices()) {
-            // Store regID as null
-        }
-
         String location = Utility.getPreferredLocation( this );
         // update the location in our second pane using the fragment manager
             if (location != null && !location.equals(mLocation)) {
