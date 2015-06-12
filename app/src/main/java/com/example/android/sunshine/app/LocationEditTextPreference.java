@@ -60,7 +60,7 @@ public class LocationEditTextPreference extends EditTextPreference {
                 PreferenceManager.getDefaultSharedPreferences(getContext());
         boolean playServicesAvailable =
                 sharedPreferences.getBoolean(MainActivity.PLAY_SERVICES_AVAILABLE, false);
-        if (!playServicesAvailable) {
+        if (playServicesAvailable) {
             // Add the get current location widget to our location preference
         }
     }
