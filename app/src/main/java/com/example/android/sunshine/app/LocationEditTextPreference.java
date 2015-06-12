@@ -18,14 +18,23 @@ package com.example.android.sunshine.app;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.TypedArray;
 import android.os.Bundle;
 import android.preference.EditTextPreference;
+import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
+
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.places.Places;
 
 public class LocationEditTextPreference extends EditTextPreference {
     static final private int DEFAULT_MINIMUM_LOCATION_LENGTH = 2;
@@ -42,8 +51,19 @@ public class LocationEditTextPreference extends EditTextPreference {
         } finally {
             a.recycle();
         }
-    }
 
+        // Check our stored boolean value to see if Google Play services is available. If no value
+        // is stored, we'll just assume it isn't. The Place Picker API is available through Google
+        // Play services, so if this is false, we'll just carry on as though this feature
+        // does not exist.
+        SharedPreferences sharedPreferences =
+                PreferenceManager.getDefaultSharedPreferences(getContext());
+        boolean playServicesAvailable =
+                sharedPreferences.getBoolean(MainActivity.PLAY_SERVICES_AVAILABLE, false);
+        if (!playServicesAvailable) {
+            // Add the get current location widget to our location preference
+        }
+    }
 
     @Override
     protected void showDialog(Bundle state) {
