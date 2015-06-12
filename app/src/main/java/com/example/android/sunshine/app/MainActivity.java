@@ -24,6 +24,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.util.Pair;
@@ -48,6 +49,7 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
     private final static int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
     public static final String PROPERTY_REG_ID = "registration_id";
     private static final String PROPERTY_APP_VERSION = "appVersion";
+    public static final String PLAY_SERVICES_AVAILABLE = "playServicesAvailable";
 
     /**
      * Substitute you own project number here. This project number comes
@@ -141,10 +143,18 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
     protected void onResume() {
         super.onResume();
 
-        // If Google Play Services is not available, some features, such as GCM-powered weather
-        // alerts, will not be available.
-        if (!checkPlayServices()) {
-            // Store regID as null
+        SharedPreferences sharedPreferences
+                = PreferenceManager.getDefaultSharedPreferences(this);
+        // If Google Play services is not available, some features, such as getting the current
+        // location using Place Picker, will not be available. So each time the app resumes,
+        // let's re-check that Google Play services is available.
+        // Theoretically, you could just write the result of this call directly, but I recommend
+        // keeping the conditional branching structure so that you can easily add in new
+        // Google Play services features later on.
+        if (checkPlayServices()) {
+            sharedPreferences.edit().putBoolean(PLAY_SERVICES_AVAILABLE, true).apply();
+        } else {
+            sharedPreferences.edit().putBoolean(PLAY_SERVICES_AVAILABLE, false).apply();
         }
 
         String location = Utility.getPreferredLocation(this);
