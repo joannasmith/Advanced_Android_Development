@@ -30,6 +30,7 @@ import android.text.format.Time;
 import android.util.Log;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.util.Util;
 import com.example.android.sunshine.app.MainActivity;
 import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Utility;
@@ -89,8 +90,12 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
 
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider, SyncResult syncResult) {
-        Log.d(LOG_TAG, "Starting sync");
-        String locationQuery = Utility.getPreferredLocation(getContext());
+        // We no longer need just the location String, but also potentially the latitude and
+        // longitude, in case we are syncing based on a new Place Picker API result.
+        Context context = getContext();
+        String locationQuery = Utility.getPreferredLocation(context);
+        String locationLatitude = String.valueOf(Utility.getLocationLatitude(context));
+        String locationLongitude = String.valueOf(Utility.getLocationLongitude(context));
 
         // These two need to be declared outside the try/catch
         // so that they can be closed in the finally block.
@@ -111,13 +116,28 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
             final String FORECAST_BASE_URL =
                     "http://api.openweathermap.org/data/2.5/forecast/daily?";
             final String QUERY_PARAM = "q";
+            final String LAT_PARAM = "lat";
+            final String LON_PARAM = "lon";
             final String FORMAT_PARAM = "mode";
             final String UNITS_PARAM = "units";
             final String DAYS_PARAM = "cnt";
 
-            Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
-                    .appendQueryParameter(QUERY_PARAM, locationQuery)
-                    .appendQueryParameter(FORMAT_PARAM, format)
+            Uri.Builder uriBuilder = Uri.parse(FORECAST_BASE_URL).buildUpon();
+
+            // Instead of always building the query based off of the location string, we want to
+            // potentially build a query using a lat/lon value. This will be the case when we are
+            // syncing based off of a new location from the Place Picker API. So we need to check
+            // if we have a lat/lon to work with, and use those when we do. Otherwise, the weather
+            // service may not understand the location address provided by the Place Picker API
+            // and the user could end up with no weather! The horror!
+            if (Utility.isLocationLatLonAvailable(context)) {
+                uriBuilder.appendQueryParameter(LAT_PARAM, locationLatitude)
+                        .appendQueryParameter(LON_PARAM, locationLongitude);
+            } else {
+                uriBuilder.appendQueryParameter(QUERY_PARAM, locationQuery);
+            }
+
+            Uri builtUri = uriBuilder.appendQueryParameter(FORMAT_PARAM, format)
                     .appendQueryParameter(UNITS_PARAM, units)
                     .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
                     .build();
@@ -152,6 +172,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
                 return;
             }
             forecastJsonStr = buffer.toString();
+
             getWeatherDataFromJson(forecastJsonStr, locationQuery);
         } catch (IOException e) {
             Log.e(LOG_TAG, "Error ", e);
@@ -224,6 +245,9 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
 
         try {
             JSONObject forecastJson = new JSONObject(forecastJsonStr);
+            Context context = getContext();
+            SharedPreferences.Editor editor =
+                    PreferenceManager.getDefaultSharedPreferences(context).edit();
 
             // do we have an error?
             if ( forecastJson.has(OWM_MESSAGE_CODE) ) {
@@ -231,12 +255,27 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
 
                 switch (errorCode) {
                     case HttpURLConnection.HTTP_OK:
+                        // When a query is successful, wipe the temporary latlon values. This way,
+                        // we can use the place returned by the Place Picker API to retrieve
+                        // weather data, but when the weather service response gives us updated
+                        // location information, we can return to the normal data model flow and no
+                        // longer need to consider special circumstances for locations entered by
+                        // the user vs found by the Place Picker API.
+                        editor.remove(context.getString(R.string.pref_location_latitude));
+                        editor.remove(context.getString(R.string.pref_location_longitude));
+                        editor.apply();
                         break;
                     case HttpURLConnection.HTTP_NOT_FOUND:
                         setLocationStatus(getContext(), LOCATION_STATUS_INVALID);
+                        // This should never happen, but just in case, we'll wipe the latlong values
+                        editor.remove(context.getString(R.string.pref_location_latitude));
+                        editor.remove(context.getString(R.string.pref_location_longitude));
+                        editor.apply();
                         return;
                     default:
                         setLocationStatus(getContext(), LOCATION_STATUS_SERVER_DOWN);
+                        // In this case, we don't wipe any potential temporary latlon values, so
+                        // that we can re-attempt a sync when the server is back online.
                         return;
                 }
             }
