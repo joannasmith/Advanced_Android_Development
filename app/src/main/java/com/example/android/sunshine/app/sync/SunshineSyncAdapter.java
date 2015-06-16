@@ -248,8 +248,6 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
 
         try {
             JSONObject forecastJson = new JSONObject(forecastJsonStr);Context context = getContext();
-            SharedPreferences.Editor editor =
-                    PreferenceManager.getDefaultSharedPreferences(context).edit();
 
             // do we have an error?
             if ( forecastJson.has(OWM_MESSAGE_CODE) ) {
@@ -257,29 +255,12 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
 
                 switch (errorCode) {
                     case HttpURLConnection.HTTP_OK:
-                        // When a query is successful, wipe the temporary latlon values. This way,
-                        // we can use the place returned by the Place Picker API to retrieve
-                        // weather data, but when the weather service response gives us updated
-                        // location information, we can return to the normal data model flow and no
-                        // longer need to consider special circumstances for locations entered by
-                        // the user vs found by the Place Picker API.
-                        editor.remove(context.getString(R.string.pref_location_latitude));
-                        editor.remove(context.getString(R.string.pref_location_longitude));
-                        editor.apply();
                         break;
                     case HttpURLConnection.HTTP_NOT_FOUND:
                         setLocationStatus(getContext(), LOCATION_STATUS_INVALID);
-
-                        // This should never happen, but just in case, we'll wipe the latlong values
-                        editor.remove(context.getString(R.string.pref_location_latitude));
-                        editor.remove(context.getString(R.string.pref_location_longitude));
-                        editor.apply();
                         return;
                     default:
                         setLocationStatus(getContext(), LOCATION_STATUS_SERVER_DOWN);
-
-                        // In this case, we don't wipe any potential temporary latlng values, so
-                        // that we can re-attempt a sync when the server is back online.
                         return;
                 }
             }
