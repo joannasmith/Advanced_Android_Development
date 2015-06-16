@@ -75,7 +75,7 @@ public class LocationEditTextPreference extends EditTextPreference {
                 // Launch the Place Picker so that the user can specify their location, and then
                 // return the result to SettingsActivity.
                 // TODO(student): Create a PlacePicker.IntentBuilder object here.
-
+                PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
 
                 // We are in a view right now, not an activity. So we need to get ourselves
                 // an activity that we can use to start our Place Picker intent. By using
@@ -86,7 +86,8 @@ public class LocationEditTextPreference extends EditTextPreference {
                     // TODO(student): Launch the intent using your settingsActivity object to access
                     // startActivityForResult(). You'll need to build your builder object and use
                     // the request code we declared in SettingsActivity.
-
+                    settingsActivity.startActivityForResult(
+                            builder.build(context), SettingsActivity.PLACE_PICKER_REQUEST);
                 } catch (GooglePlayServicesNotAvailableException
                         | GooglePlayServicesRepairableException e) {
                     // What did you do?? This is why we check Google Play services in onResume!!!
