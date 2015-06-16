@@ -170,7 +170,7 @@ public class SettingsActivity extends PreferenceActivity
                 Place place = PlacePicker.getPlace(data, this);
                 String address = place.getAddress().toString();
                 // TODO(student): Fet the LatLng object from the place.
-
+                LatLng latLong = place.getLatLng();
 
                 // If the provided place doesn't have an address, we'll form a display-friendly
                 // string from the latlng values.
@@ -188,7 +188,10 @@ public class SettingsActivity extends PreferenceActivity
                 // understand addresses that Google formats.
                 // TODO(student) Store the latitude and longitude as float values according to the
                 // keys defined in strings.xml.
-                
+                editor.putFloat(getString(R.string.pref_location_latitude),
+                        (float) latLong.latitude);
+                editor.putFloat(getString(R.string.pref_location_longitude),
+                        (float) latLong.longitude);
 
                 editor.commit();
 
